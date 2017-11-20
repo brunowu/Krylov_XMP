@@ -1,4 +1,4 @@
-#include "arnoldi_gmres.h"
+#include "../includes/arnoldi_gmres.h"
 
 void arnoldi(matrix * mat, vector * v, matrix * matQ, matrix * matH){
 	

@@ -1,7 +1,7 @@
 #include <time.h>
 #include <xmp.h>
-#include "basic_operation_complex.h"
-#include "constant_data.h"
+#include "../includes/basic_operation_complex.h"
+#include "../includes/constant_data.h"
 
 #pragma xmp nodes p(NPES)
 #pragma xmp template t(0:ROWS_NUM-1)

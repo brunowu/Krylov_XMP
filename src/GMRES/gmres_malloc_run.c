@@ -1,7 +1,7 @@
 #include <time.h>
 #include <xmp.h>
-#include "arnoldi_gmres.h"
-#include "constant_data.h"
+#include "../includes/arnoldi_gmres.h"
+#include "../includes/constant_data.h"
 
 #pragma xmp nodes p(NPES)
 #pragma xmp template t(0:ROWS_NUM-1)
@@ -441,25 +441,6 @@ void Xmp_ellpack_multiple_vector(vector * v){
 }
 
 void Xmp_vector_duplicate(double * v, vector * r){
-	/**
-	for(int i=0; i<ROWS_NUM; i++){
-		*(v + i) = 0;
-	}
-
-	#pragma xmp loop on t(i)
-{
-	for(int i=0; i<ROWS_NUM; i++){
-		*(v + i) = V[i];
-	}
-}
-
-	for(int i=0; i<ROWS_NUM; i++){
-		index = *(v + i);
-		#pragma xmp barrier
-		#pragma xmp reduction (+:index)
-		*(v + i) = index;
-	}
-**/
 	#pragma xmp gmove
 {
 	v[0:ROWS_NUM] = V[0:ROWS_NUM];

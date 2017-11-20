@@ -1,4 +1,4 @@
-#include "mVecMatrix.h"
+#include "../includes/mVecMatrix.h"
 
 void vector_divid(vector * v, double x){
 	int length = vector_total(v);

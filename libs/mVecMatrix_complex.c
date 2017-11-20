@@ -1,4 +1,4 @@
-#include "mVecMatrix_complex.h"
+#include "../includes/mVecMatrix_complex.h"
 
 void vector_divid(vector * v, complex * x){
 	int length = vector_total(v);

@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "constant_data.h"
-#include "complex_scalar.h"	
+#include "../includes/constant_data.h"
+#include "../includes/complex_scalar.h"	
 
 //main function
 int main(void){

@@ -1,4 +1,4 @@
-#include "vector.h"
+#include "../includes/vector.h"
 
 int vector_capacity(vector * v){
 	return v->capacity;

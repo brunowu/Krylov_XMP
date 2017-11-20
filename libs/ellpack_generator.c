@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "constant_data.h"
+#include "../includes/constant_data.h"
 
 //random_get function
 double random_double_get(double min, double max);

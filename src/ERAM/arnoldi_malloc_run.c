@@ -1,7 +1,7 @@
 #include <time.h>
 #include <xmp.h>
-#include "arnoldi_gmres.h"
-#include "constant_data.h"
+#include "../includes/arnoldi_gmres.h"
+#include "../includes/constant_data.h"
 
 #pragma xmp nodes p(NPES)
 #pragma xmp template t(0:ROWS_NUM-1)

@@ -1,4 +1,4 @@
-#include "matrix.h"
+#include "../includes/matrix.h"
 
 int matrix_total_ligne(matrix * mat, int ligne){
 	return mat->total[ligne];
