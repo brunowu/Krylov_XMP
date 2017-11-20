@@ -1,5 +1,6 @@
-#include "basic_operation_complex.h"
+#include "../includes/basic_operation_complex.h"
 #include "../includes/constant_data.h"
+#include "../includes/complex_scalar.h"
 
 int main(void){
 	complex c1, c2, c3, c4, c5;
