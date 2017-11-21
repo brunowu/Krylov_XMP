@@ -11,6 +11,7 @@ REAL_LIB = ${LIB}/libreal.a
 CPLX_LIB = ${LIB}/libcomplex.a
 OFILES = ${wildcard ./libs/*.o} ${wildcard ./src/*/*.o} ${wildcard ./test/*.o}
 EXEC = rarnoldi carnoldi rgmres cgmres
+
 BIN = bin
 
 all: blib exec
