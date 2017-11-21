@@ -1,6 +1,8 @@
-#include "../../includes/arnoldi_gmres.h"
-#include "../../includes/constant_data.h"
-#include "../../includes/matrix.h"
+#include "../includes/arnoldi_gmres.h"
+#include "../includes/matrix.h"
+#include "../includes/vector.h"
+#include "../includes/constant_data.h"
+
 void arnoldi(matrix * mat, vector * v, matrix * matQ, matrix * matH){
 	
 	vector r, r1;

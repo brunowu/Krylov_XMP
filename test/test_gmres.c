@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include "../includes/arnoldi_gmres.h"
+#include "../includes/constant_data.h"
+#include "../includes/matrix.h"
+#include "../includes/vector.h"
 
 int main(void){
 	double m[6][6] = {{1, 0, 2.7, 0, 0, 0}, {2, 0, 1, 0, -2.5, 0}, {9, 0, 0, -3, 0, 0}, {0, 0, 0, 10.8, 0, -1.11}, {0, -4.8, 0, 0, -3.33, 0}, {0, -2.1, 0, 0, 0, 0}};
