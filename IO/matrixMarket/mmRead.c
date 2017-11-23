@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "mmIO_Utils.h"
+#include "./mmIO_Utils/mmIO_Utils.h"
 
 int main(int argc, char *argv[])
 {

@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "mmIO_Utils.h"
+#include "./mmIO_Utils/mmIO_Utils.h"
 
 #define nz 4
 #define M 10
