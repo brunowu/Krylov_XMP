@@ -6,8 +6,6 @@
 **
 **/
 
-#include "utils.h"
-#include "../mmIO_Utils/mmIO_Utils.h"
 #include "mm2Csr.h"
 
 void csr2csc(int n, int m, int nz, double *a, int *col_idx, int *row_start,

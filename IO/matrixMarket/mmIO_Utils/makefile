@@ -1,3 +1,5 @@
+SHELL=/bin/bash
+
 All: all
 
 CC = gcc 
@@ -5,8 +7,8 @@ CFLAGS =
 AR = ar
 ARFLAGS = cr
 
-SRCS = mmIO_Utils.c
-OBJS = mmIO_Utils.o
+SRCS = mmIO_Utils.c utils.c mm2Csr.c 
+OBJS = mmIO_Utils.o utils.o mm2Csr.o
 
 .PHONY = all
 

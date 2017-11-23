@@ -6,14 +6,12 @@
 *
 */
 
-#ifndef MM_IO_UTILS_H
-#define MM_IO_UTILS_H
+#ifndef MM_IO_H
+#define MM_IO_H
 
 #define MM_MAX_LINE_LENGTH 1025
 #define MatrixMarketBanner "%%MatrixMarket"
 #define MM_MAX_TOKEN_LENGTH 64
-
-#include <stdio.h>
 
 typedef char MM_typecode[4];
 
@@ -32,7 +30,8 @@ int mm_write_mtx_array_size(FILE *f, int M, int N);
 
 #define mm_is_matrix(typecode)	((typecode)[0]=='M')
 
-#define mm_is_sparse(typecode)	((typecode)[1]=='C')
+#define mm_is_sparse(typecode) ( ((typecode)[1]=='C') || ((typecode)[1]=='S') )
+#define mm_is_sparserow(typecode)	((typecode)[1]=='S')
 #define mm_is_coordinate(typecode)((typecode)[1]=='C')
 #define mm_is_dense(typecode)	((typecode)[1]=='A')
 #define mm_is_array(typecode)	((typecode)[1]=='A')
@@ -54,9 +53,9 @@ int mm_is_valid(MM_typecode matcode);		/* too complex for a macro */
 
 #define mm_set_matrix(typecode)	((*typecode)[0]='M')
 #define mm_set_coordinate(typecode)	((*typecode)[1]='C')
+#define mm_set_sparserow(typecode)	((*typecode)[1]='S')
 #define mm_set_array(typecode)	((*typecode)[1]='A')
 #define mm_set_dense(typecode)	mm_set_array(typecode)
-#define mm_set_sparse(typecode)	mm_set_coordinate(typecode)
 
 #define mm_set_complex(typecode)((*typecode)[2]='C')
 #define mm_set_real(typecode)	((*typecode)[2]='R')
@@ -107,7 +106,7 @@ int mm_is_valid(MM_typecode matcode);		/* too complex for a macro */
 #define MM_ARRAY_STR	"array"
 #define MM_DENSE_STR	"array"
 #define MM_COORDINATE_STR "coordinate" 
-#define MM_SPARSE_STR	"coordinate"
+#define MM_SPARSEROW_STR "sparserow" 
 #define MM_COMPLEX_STR	"complex"
 #define MM_REAL_STR		"real"
 #define MM_INT_STR		"integer"
@@ -127,8 +126,6 @@ int mm_read_mtx_crd_data(FILE *f, int M, int N, int nz, int I[], int J[],
 int mm_read_mtx_crd_entry(FILE *f, int *I, int *J, double *real, double *img,
 			MM_typecode matcode);
 
-int mm_read_unsymmetric_sparse(const char *fname, int *M_, int *N_, int *nz_,
-                double **val_, int **I_, int **J_);
 
 
 
