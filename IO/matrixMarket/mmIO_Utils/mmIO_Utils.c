@@ -41,10 +41,16 @@ int mm_read_banner(FILE *f, MM_typecode *matcode)
         return MM_PREMATURE_EOF;
 
     if (sscanf(line, "%s %s %s %s %s", banner, mtx, crd, data_type, 
-        storage_scheme) != 5)
+        storage_scheme) != 5) 
         return MM_PREMATURE_EOF;
+    /*banner = %%matrixmarket
+      mtx = matrix
+      crd = coordinnate 
+      data_type =real
+      storage_schema = symmetric
+    */
 
-    for (p=mtx; *p!='\0'; *p=tolower(*p),p++);  /* convert to lower case */
+    for (p=mtx; *p!='\0'; *p=tolower(*p),p++);  /* convert to lower case of letters */
     for (p=crd; *p!='\0'; *p=tolower(*p),p++);  
     for (p=data_type; *p!='\0'; *p=tolower(*p),p++);
     for (p=storage_scheme; *p!='\0'; *p=tolower(*p),p++);

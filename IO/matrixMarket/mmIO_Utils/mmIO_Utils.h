@@ -17,16 +17,18 @@ typedef char MM_typecode[4];
 
 char *mm_typecode_to_str(MM_typecode matcode);
 
-int mm_read_banner(FILE *f, MM_typecode *matcode);
-int mm_read_mtx_crd_size(FILE *f, int *M, int *N, int *nz);
+int mm_read_banner(FILE *f, MM_typecode *matcode); //matrix market banner in the first line
+int mm_read_mtx_crd_size(FILE *f, int *M, int *N, int *nz); //matrix size and nnz, always the second line of matrix market format
 int mm_read_mtx_array_size(FILE *f, int *M, int *N);
 
-int mm_write_banner(FILE *f, MM_typecode matcode);
-int mm_write_mtx_crd_size(FILE *f, int M, int N, int nz);
+int mm_write_banner(FILE *f, MM_typecode matcode); //write as #matrix market real format 
+int mm_write_mtx_crd_size(FILE *f, int M, int N, int nz); 
 int mm_write_mtx_array_size(FILE *f, int M, int N);
 
 
 /********************* MM_typecode query fucntions ***************************/
+
+/*eg. typecode = M S C S means a sparse complex symmetric matrix */
 
 #define mm_is_matrix(typecode)	((typecode)[0]=='M')
 
@@ -47,7 +49,6 @@ int mm_write_mtx_array_size(FILE *f, int M, int N);
 #define mm_is_hermitian(typecode)((typecode)[3]=='H')
 
 int mm_is_valid(MM_typecode matcode);		/* too complex for a macro */
-
 
 /********************* MM_typecode modify fucntions ***************************/
 
