@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "../includes/arnoldi_gmres.h"
+#include "../includes/real/krylov.h"
 #include "../includes/constant_data.h"
 #include "../includes/matrix.h"
 #include "../includes/vector.h"

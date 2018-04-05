@@ -1,32 +1,26 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 #include <time.h>
 #include <xmp.h>
-#include "../../includes/basic_operation_complex.h"
-#include "../../includes/constant_data.h"
-#include "../../includes/vector.h"
-#include "../../includes/matrix.h"
+#include "../includes/real/krylov.h"
+#include "../includes/constant_data.h"
 
 #pragma xmp nodes p(NPES)
 #pragma xmp template t(0:ROWS_NUM-1)
 #pragma xmp distribute t(block) onto p
 
 //matrix and vector for parallel computing
-complex (*mat)[COLS_NUM];
-complex (*mat_ell)[COLS_ELL_NUM];
-double * V1;
-double * V2;
-//double * vT;
-//double * idx;
-
+double mat[ROWS_NUM][COLS_NUM];
+double mat_ell[ROWS_NUM][COLS_ELL_NUM];
+double V[ROWS_NUM];
 #pragma xmp align mat[i][*] with t(i)
-#pragma xmp align mat_ell[i][*] with t(i)
-#pragma xmp align V1[i] with t(i)
-#pragma xmp align V2[i] with t(i)
-//#pragma xmp align vT[i] with t(i)
-//#pragma xmp align idx[i] with t(i)
+#pragma xmp align mat_ell[ROWS_NUM][COLS_ELL_NUM] with t(i)
+#pragma xmp align V[i] with t(i)
 
 //global data
-complex ** m;
-complex ** m_ell;
+double m[ROWS_NUM][COLS_NUM];
+double m_ell[ROWS_NUM][COLS_ELL_NUM];
 //function which aide the routine
 void readMatrix_matrix();
 void readMatrix_ellpack();
@@ -34,7 +28,7 @@ void initialize_matrix(vector * v, matrix * matQ, matrix * matH);
 void initialize_ellpack(vector * v, matrix * matQ, matrix * matH);
 void Xmp_matrix_multiple_vector(vector * v);
 void Xmp_ellpack_multiple_vector(vector * v);
-void Xmp_vector_duplicate(double * v1, double * v2, vector * r);
+void Xmp_vector_duplicate(double * v, vector * r);
 void Xmp_matrix_arnoldi(vector * v, matrix * matQ, matrix * matH);
 void Xmp_ellpack_arnoldi(vector * v, matrix * matQ, matrix * matH);
 
@@ -48,12 +42,6 @@ int main(void){
 
 	#pragma xmp task on p(1)
 {
-	for(int i=0; i<ROWS_NUM; i++){
-		for(int j=0; j<COLS_NUM; j++){
-			complex_show(*(m + i) + j);
-		}
-		printf("\n");
-	}
 	start_time = xmp_wtime();
 }
 	//Initialization of matrix and vector
@@ -74,7 +62,7 @@ int main(void){
 {
 	stop_time = xmp_wtime();
 	elapsed_time = stop_time - start_time;
-	//matrix_show(&matT);
+
 	printf("Total_time was %f seconds.\n", elapsed_time);
 }
 	vector_free(&v);
@@ -88,93 +76,118 @@ Arnoldi algorithm
 *********************************/
 void Xmp_matrix_arnoldi(vector * v, matrix * matQ, matrix * matH){
 	vector r, r1;
-	complex * h = (complex *)malloc(sizeof(complex));
-	double * v_p1 = (double *)malloc(sizeof(double) * ROWS_NUM);
-	double * v_p2 = (double *)malloc(sizeof(double) * ROWS_NUM);
+	double * h = (double *)malloc(sizeof(double));
+	double * v_p = (double *)malloc(sizeof(double) * ROWS_NUM);
 	//calcul and stock of q1
 	vector q1, q;
 	vector_copy(v, &q1);
 	vector_abs(v, h);
-	vector_divid(&q1, h);
+	vector_divid(&q1, * h);
 	stock_vector_in_matrix(matQ, &q1, 0);
+	free(h);
 	vector_free(&q1);
 	for(int j=1; j<=restart_max; j++){
 		matrix_get_vector(matQ, &q, j - 1);
 		#pragma xmp barrier
 		Xmp_matrix_multiple_vector(&q);
 		#pragma xmp barrier
-		Xmp_vector_duplicate(v_p1, v_p2, &r);
+		Xmp_vector_duplicate(v_p, &r);
 		vector_free(&q);
 		#pragma xmp barrier
 		// Gram-Schmidt orthogonalization
 		for(int i=1; i<=j; i++){
 			matrix_get_vector(matQ, &q, i - 1);
+			h = (double *)malloc(sizeof(double));
+			//vector_show(&q);
+			//vector_show(&r);
 			vector_inner_produit(&q, &r, h);
 			matrix_add_duplicate(matH, j - 1, (void *)h);
-			vector_multiple(&q, h);
+			vector_multiple(&q, * h);
 			vector_reduce_vector(&r, &q, &r1);
 			vector_free(&r);
 			vector_duplicate(&r1, &r);
+			free(h);
 			vector_free(&q); vector_free(&r1);
 		}
+		h = (double *)malloc(sizeof(double));
 		vector_abs(&r, h);
-		vector_divid(&r, h);
+		vector_divid(&r, * h);
 		if(j == restart_max){
 			vector_free(&r); vector_free(v);
-			free(h); free(v_p1); free(v_p2);
+			free(h); free(v_p);
+			h = NULL; v_p = NULL;
 			matrix_complete_ligne(matH);
 			return;
+			/**else{		
+				matrix_free(matQ); matrix_init(matQ, restart_max, vector_total(v));
+				matrix_free(matH); matrix_init(matH, restart_max, restart_max);				
+				vector_free(v); free(h);
+				arnoldi(mat, &r, matQ, matH, index_ligne, restart_max);
+			}**/
 		}else{
 			matrix_add_duplicate(matH, j - 1, (void *)h);
 			stock_vector_in_matrix(matQ, &r, j);
-			matrix_show(matQ);
 			vector_free(&r);
+			free(h);
 		}
 	}
 }
 
 void Xmp_ellpack_arnoldi(vector * v, matrix * matQ, matrix * matH){
 	vector r, r1;
-	complex * h = (complex *)malloc(sizeof(complex));
-	double * v_p1 = (double *)malloc(sizeof(double) * ROWS_NUM);
-	double * v_p2 = (double *)malloc(sizeof(double) * ROWS_NUM);
+	double * h = (double *)malloc(sizeof(double));
+	double * v_p = (double *)malloc(sizeof(double) * ROWS_NUM);
 	//calcul and stock of q1
 	vector q1, q;
 	vector_copy(v, &q1);
 	vector_abs(v, h);
-	vector_divid(&q1, h);
+	vector_divid(&q1, * h);
 	stock_vector_in_matrix(matQ, &q1, 0);
+	free(h);
 	vector_free(&q1);
 	for(int j=1; j<=restart_max; j++){
 		matrix_get_vector(matQ, &q, j - 1);
 		#pragma xmp barrier
 		Xmp_ellpack_multiple_vector(&q);
 		#pragma xmp barrier
-		Xmp_vector_duplicate(v_p1, v_p2, &r);
+		Xmp_vector_duplicate(v_p, &r);
 		vector_free(&q);
 		#pragma xmp barrier
 		// Gram-Schmidt orthogonalization
 		for(int i=1; i<=j; i++){
 			matrix_get_vector(matQ, &q, i - 1);
+			h = (double *)malloc(sizeof(double));
+			//vector_show(&q);
+			//vector_show(&r);
 			vector_inner_produit(&q, &r, h);
 			matrix_add_duplicate(matH, j - 1, (void *)h);
-			vector_multiple(&q, h);
+			vector_multiple(&q, * h);
 			vector_reduce_vector(&r, &q, &r1);
 			vector_free(&r);
 			vector_duplicate(&r1, &r);
+			free(h);
 			vector_free(&q); vector_free(&r1);
 		}
+		h = (double *)malloc(sizeof(double));
 		vector_abs(&r, h);
-		vector_divid(&r, h);
+		vector_divid(&r, * h);
 		if(j == restart_max){
 			vector_free(&r); vector_free(v);
-			free(h); free(v_p1); free(v_p2);
+			free(h); free(v_p);
+			h = NULL; v_p = NULL;
 			matrix_complete_ligne(matH);
 			return;
+			/**else{		
+				matrix_free(matQ); matrix_init(matQ, restart_max, vector_total(v));
+				matrix_free(matH); matrix_init(matH, restart_max, restart_max);				
+				vector_free(v); free(h);
+				arnoldi(mat, &r, matQ, matH, index_ligne, restart_max);
+			}**/
 		}else{
 			matrix_add_duplicate(matH, j - 1, (void *)h);
 			stock_vector_in_matrix(matQ, &r, j);
 			vector_free(&r);
+			free(h);
 		}
 	}
 }
@@ -185,93 +198,37 @@ Read Matrix
 ******************************/
 void readMatrix_matrix()
 {
-	//initialize matrix m
-	m = malloc(sizeof(complex *) * ROWS_NUM);
-	for(int i=0; i<ROWS_NUM; i++){
-		m[i] = malloc(sizeof(complex) * COLS_NUM);
-	}
-
 	FILE * f1;
-	complex * temp = malloc(sizeof(complex));
-	double * flag = malloc(sizeof(double));
+	double * temp = malloc(sizeof(double));
 
-	f1 = fopen("mat_complex_10_10.txt", "rb");
+	f1 = fopen("mat_sample3.txt", "rb");
 	for(int i=0; i<ROWS_NUM; i++){
 		for(int j=0; j<COLS_NUM; j++){
-			fread(flag, sizeof(double), 1, f1); temp->re = * flag;
-			fread(flag, sizeof(double), 1, f1); temp->im = * flag;
-			complex_copy(*(m + i) + j, temp);
+			fread(temp, sizeof(double), 1, f1);
+			m[i][j] = * temp;
 		}
 	}
-	free(temp); free(flag);
 }
 
 void readMatrix_ellpack()
 {
-	//Initialize of m_ell
-	m_ell = malloc(sizeof(complex *) * ROWS_NUM);
-	for(int i=0; i<ROWS_NUM; i++){
-		m_ell[i] = malloc(sizeof(complex) * COLS_ELL_NUM);
-	}
-
 	FILE * f1;
-	complex * temp = malloc(sizeof(complex));
-	double * flag = malloc(sizeof(double));
+	double * temp = malloc(sizeof(double));
 
-	f1 = fopen("mat_ell_100000_2002.txt", "rb");
+	f1 = fopen("mat_ell_sample3.txt", "rb");
 	for(int i=0; i<ROWS_NUM; i++){
 		for(int j=0; j<COLS_ELL_NUM; j++){
-			fread(flag, sizeof(double), 1, f1); temp->re = * flag;
-			fread(flag, sizeof(double), 1, f1); temp->im = * flag;
-			complex_copy(*(m + i) + j, temp);
+			fread(temp, sizeof(double), 1, f1);
+			m_ell[i][j] = * temp;
 		}
 	}
-	free(temp); free(flag);
 }
 
 /*************************
 Initialization of matrix
 **************************/
 void initialize_matrix(vector * v, matrix * matQ, matrix * matH){
-	complex * a = (complex *)malloc(sizeof(complex));
-	complex_init(a, 1, 0);
-	vector_init(v, ROWS_NUM);
-	for(int i=0; i<ROWS_NUM; i++){
-		vector_add_duplicate(v, (void *)a);
-	}
-	matrix_init(matQ, restart_max, COLS_NUM);
-	matrix_init(matH, restart_max, restart_max);
-
-	mat = (complex (*)[COLS_NUM])xmp_malloc(xmp_desc_of(mat), ROWS_NUM, COLS_NUM);
-
-	#pragma xmp loop on t(i)
-{
-	for(int i=0; i<ROWS_NUM; i++){
-		for(int j=0; j<COLS_NUM; j++){
-			complex_copy(*(mat + i) + j, *(m + i) + j);
-		}
-	}
-}
-
-	V1 = (double *)xmp_malloc(xmp_desc_of(V1), ROWS_NUM);
-	V2 = (double *)xmp_malloc(xmp_desc_of(V2), ROWS_NUM);
-	#pragma xmp loop on t(i)
-{
-	for(int i=0; i<ROWS_NUM; i++){
-		V1[i] = 0;
-		V2[i] = 0;
-	}
-}
-
-	for(int i=0; i<ROWS_NUM; i++){
-		free(m[i]);
-	}
-	free(m); free(a);
-}
-
-void initialize_ellpack(vector * v, matrix * matQ, matrix * matH){
-	complex * a = (complex *)malloc(sizeof(complex));
-	complex_init(a, 1, 0);
+	double a = 1;
 	vector_init(v, ROWS_NUM);
 	for(int i=0; i<ROWS_NUM; i++){
 		vector_add_duplicate(v, (void *)&a);
@@ -279,29 +236,47 @@ void initialize_ellpack(vector * v, matrix * matQ, matrix * matH){
 	matrix_init(matQ, restart_max, COLS_NUM);
 	matrix_init(matH, restart_max, restart_max);
 
-	mat_ell = (complex (*)[COLS_ELL_NUM])xmp_malloc(xmp_desc_of(mat_ell), ROWS_NUM, COLS_ELL_NUM);
+	#pragma xmp loop on t(i)
+{
+	for(int i=0; i<ROWS_NUM; i++){
+		for(int j=0; j<COLS_NUM; j++){
+			mat[i][j] = m[i][j];
+		}
+	}
+}
+
+	#pragma xmp loop on t(i)
+{
+	for(int i=0; i<ROWS_NUM; i++){
+		V[i] = 0;
+	}
+}
+}
+
+void initialize_ellpack(vector * v, matrix * matQ, matrix * matH){
+	double a = 1;
+	vector_init(v, ROWS_NUM);
+	for(int i=0; i<ROWS_NUM; i++){
+		vector_add_duplicate(v, (void *)&a);
+	}
+	matrix_init(matQ, restart_max, COLS_NUM);
+	matrix_init(matH, restart_max, restart_max);
+
 	#pragma xmp loop on t(i)
 {
 	for(int i=0; i<ROWS_NUM; i++){
 		for(int j=0; j<COLS_ELL_NUM; j++){
-			complex_copy(*(mat_ell + i) + j, *(m_ell + i) + j);
+			mat_ell[i][j] = m_ell[i][j];
 		}
 	}
 }
-	V1 = (double *)xmp_malloc(xmp_desc_of(V1), ROWS_NUM);
-	V2 = (double *)xmp_malloc(xmp_desc_of(V2), ROWS_NUM);
+
 	#pragma xmp loop on t(i)
 {
 	for(int i=0; i<ROWS_NUM; i++){
-		V1[i] = 0;
-		V2[i] = 0;
+		V[i] = 0;
 	}
 }
-
-	for(int i=0; i<ROWS_NUM; i++){
-		free(m_ell[i]);
-	}
-	free(m_ell); free(a);
 }
 
 /*************************
@@ -312,22 +287,15 @@ void Xmp_matrix_multiple_vector(vector * v){
 		printf("Not same dimension of matrix and vector");
 		return;
 	}else{
-		complex * a = (complex *)malloc(sizeof(complex));
-		complex * flag = (complex *)malloc(sizeof(complex));
-		complex_init(a, 0, 0);
 		#pragma xmp loop on t(i)
 {
 		for(int i=0; i<ROWS_NUM; i++){
-			V1[i] = 0; V2[i] = 0;
+			V[i] = 0;
 			for(int j=0; j<COLS_NUM; j++){
-				complex_copy(flag, (complex *)vector_get(v, j));
-				complex_multiple(flag, *(mat + i) + j);
-				V1[i] += flag->re;
-				V2[i] += flag->im;
+				V[i] += mat[i][j] * (*(double *)vector_get(v, j));
 			}
 		}
 }	
-	free(a); free(flag);
 	}
 }
 
@@ -336,19 +304,13 @@ void Xmp_ellpack_multiple_vector(vector * v){
 		printf("Not same dimension of matrix and vector");
 		return;
 	}else{
-		complex * a = (complex *)malloc(sizeof(complex));
-		complex * flag = (complex *)malloc(sizeof(complex));
-		complex_init(a, 0, 0); 
 		#pragma xmp loop on t(i)
 {
 		for(int i=0; i<ROWS_NUM; i++){
-			V1[i] = 0; V2[i] = 0;
+			V[i] = 0;
 			for(int j=0; j<COLS_ELL_NUM/2; j++){
-				if(!((*(mat_ell + i) + j)->re == -1 && (*(mat_ell + i) + j)->im == 0)){
-					complex_copy(flag, (complex *)vector_get(v, (*(mat_ell + i) + j)->re));
-					complex_multiple(flag, *(mat_ell + i) + COLS_ELL_NUM/2 + j);
-					V1[i] += flag->re;
-					V2[i] += flag->im;
+				if(mat_ell[i][j] != -1){
+					V[i] += mat_ell[i][COLS_ELL_NUM/2 + j] * (*(double *)vector_get(v, mat_ell[i][j]));
 				}
 			}
 		}
@@ -356,19 +318,17 @@ void Xmp_ellpack_multiple_vector(vector * v){
 	}
 }
 
-void Xmp_vector_duplicate(double * v1, double * v2, vector * r){
-	#pragma xmp gmove
+void Xmp_vector_duplicate(double * v, vector * r){
+	#pragma xmp loop on t(i)
 {
-	v1[0:ROWS_NUM] = V1[0:ROWS_NUM];
-}
-	#pragma xmp gmove
-{
-	v2[0:ROWS_NUM] = V2[0:ROWS_NUM];
-}
-	vector_init(r, ROWS_NUM);
-	complex * flag = (complex *)malloc(sizeof(complex));
 	for(int i=0; i<ROWS_NUM; i++){
-		complex_init(flag, v1[i], v2[i]);
-		vector_add_duplicate(r, (void *)flag);
+		*(v + i) = V[i];
 	}
 }
+	vector_init(r, ROWS_NUM);
+	for(int i=0; i<ROWS_NUM; i++){
+		vector_add_duplicate(r, (void *)(v + i));
+	}
+}
+
+

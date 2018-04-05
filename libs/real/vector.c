@@ -1,4 +1,4 @@
-#include "../includes/vector.h"
+#include "../../includes/vector.h"
 
 int vector_capacity(vector * v){
 	return v->capacity;
@@ -37,17 +37,17 @@ void vector_add(vector * v, void * item){
 }
 
 void vector_add_duplicate(vector * v, void * item){
-	complex * item_dup = (complex *)malloc(sizeof(complex));
+	double * item_dup = (double *)malloc(sizeof(double));
 	if(v->capacity == v->total){
 		vector_resize(v, v->capacity + 1);
 	}
-	complex_copy(item_dup, (complex *)item);
+	* item_dup = *(double *)item;
 	v->items[v->total++] = (void *)item_dup;
 }
 
 void vector_set(vector * v, int index, void * item){
 	if(index >= 0 && index < v->total){
-		complex_copy((complex *)v->items[index], (complex *)item);
+		*(double *)v->items[index] = *(double *)item;
 	}
 }
 
@@ -83,7 +83,7 @@ void vector_free(vector * v){
 
 void vector_show(vector * v){
 	for(int i=0; i<vector_total(v); i++){
-		complex_show((complex *)vector_get(v, i));
+		printf("%f ", *(double *)vector_get(v, i));
 	}
 	printf("\n");
 }

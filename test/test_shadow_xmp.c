@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <xmp.h>
-#include "../includes/arnoldi_gmres.h"
+#include "../includes/real/krylov.h"
 #include "../includes/constant_data.h"
 #pragma xmp nodes p(NPES)
 #pragma xmp template t(0:ROWS_NUM-1)

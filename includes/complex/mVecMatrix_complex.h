@@ -1,11 +1,11 @@
-#include "vector.h"
-#include "matrix.h"
+#include "../vector.h"
+#include "../matrix.h"
 
 #ifndef MVECMATRIX_H
 #define MVECMATRIX_H
 
-#define VECTOR_DIVID(vec, x) vector_divid(&vec, x)
-#define VECTOR_MULTIPLE(vec, x) vector_multiple(&vec, x)
+#define VECTOR_DIVID(vec, x) vector_divid(&vec, &x)
+#define VECTOR_MULTIPLE(vec, x) vector_multiple(&vec, &x)
 #define VECTOR_ADD_VECTOR(vec1, vec2, newV) vector_add_vector(&vec1, &vec2, &newV);
 #define VECTOR_REDUCE_VECTOR(vec1, vec2, newV) vector_reduce_vector(&vec1, &vec2, &newV)
 #define VECTOR_INNER_PRODUIT(vec1, vec2, h) vector_inner_produit(&vec1, &vec2, &h)
@@ -17,12 +17,12 @@
 #define MATRIX_MULTIPLE_MATRIX(mat1, mat2, newMat) matrix_multiple_matrix(&mat1, &mat2, &newMat)
 #define UPPER_TRIANGLE_MATRIX_INVERSE(mat, mati) upper_triangle_matrix_inverse(&mat, &mati)
 
-void vector_divid(vector * v, double x);
-void vector_multiple(vector * v, double x);
+void vector_divid(vector * v, complex * x);
+void vector_multiple(vector * v, complex * x);
 void vector_add_vector(vector * v1, vector * v2, vector * newV);
 void vector_reduce_vector(vector * v1, vector * v2, vector * newV);
-void vector_inner_produit(vector * v1, vector * v2, double * h);
-void vector_abs(vector * v, double * h);
+void vector_inner_produit(vector * v1, vector * v2, complex * h);
+void vector_abs(vector * v, complex * h);
 void stock_vector_in_matrix(matrix * mat, vector * v, int ligne);
 void stock_mvector_in_matrix(matrix * mat, void ** v, int ligne, int colone);
 void matrix_get_vector(matrix * mat, vector * v, int ligne);

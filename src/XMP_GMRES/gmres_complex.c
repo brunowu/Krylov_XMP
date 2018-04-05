@@ -1,6 +1,6 @@
 #include <time.h>
 #include <xmp.h>
-#include "../../includes/arnoldi_gmres.h"
+#include "../../includes/complex/krylov_complex.h"
 #include "../../includes/constant_data.h"
 #include "../../includes/vector.h"
 #include "../../includes/matrix.h"
@@ -10,17 +10,17 @@
 #pragma xmp distribute t(block) onto p
 
 //matrix and vector for parallel computing
-double (*mat)[COLS_NUM];
-double (*mat_ell)[COLS_ELL_NUM];
-double * V;
+complex (*mat)[COLS_NUM];
+complex (*mat_ell)[COLS_ELL_NUM];
+complex * V;
 
 #pragma xmp align mat[i][*] with t(i)
 #pragma xmp align mat_ell[i][*] with t(i)
 #pragma xmp align V[i] with t(i)
 
 //global data
-double ** m;
-double ** m_ell;
+complex ** m;
+complex ** m_ell;
 //function which aide the routine
 void readMatrix_matrix();
 void readMatrix_ellpack();
@@ -28,7 +28,7 @@ void initialize_matrix(vector * vx, vector * vb, matrix * matQ, matrix * matH, m
 void initialize_ellpack(vector * vx, vector * vb, matrix * matQ, matrix * matH, matrix * omega, matrix * matR);
 void Xmp_matrix_multiple_vector(vector * v);
 void Xmp_ellpack_multiple_vector(vector * v);
-void Xmp_vector_duplicate(double * v, vector * r);
+void Xmp_vector_duplicate(complex * v, vector * r);
 void Xmp_matrix_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, matrix * omega, matrix * matR, int nb_tour);
 void Xmp_ellpack_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, matrix * omega, matrix * matR, int nb_tour);
 
@@ -81,9 +81,9 @@ void Xmp_matrix_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, ma
 }
 	vector r, r1, rp, q, y, newx;
 	matrix qT;
-	double * h = (double *)malloc(sizeof(double));
-	double * beta = (double *)malloc(sizeof(double));
-	double * v_p = (double *)malloc(sizeof(double) * ROWS_NUM);
+	complex * h = (complex *)malloc(sizeof(complex));
+	complex * beta = (complex *)malloc(sizeof(complex));
+	complex * v_p = (complex *)malloc(sizeof(complex) * ROWS_NUM);
 
 	//Calcul and stock q1
 	#pragma xmp barrier
@@ -94,8 +94,8 @@ void Xmp_matrix_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, ma
 	vector_free(&q);
 
 	vector_abs(&r, h);
-	* beta = * h;
-	vector_divid(&r, * h);
+	complex_copy(beta, h);
+	vector_divid(&r, h);
 
 	stock_vector_in_matrix(matQ, &r, 0);
 	vector_free(&r);
@@ -113,7 +113,7 @@ void Xmp_matrix_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, ma
 			matrix_get_vector(matQ, &q, i - 1);
 			vector_inner_produit(&q, &r, h);
 			matrix_add_duplicate(matH, j - 1, (void *)h);
-			vector_multiple(&q, * h);
+			vector_multiple(&q, h);
 			vector_reduce_vector(&rp, &q, &r1);
 			vector_free(&rp);
 			vector_duplicate(&r1, &rp);
@@ -121,7 +121,7 @@ void Xmp_matrix_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, ma
 		}
 		vector_abs(&rp, h);
 		matrix_add_duplicate(matH, j - 1, (void *)h);
-		vector_divid(&rp, * h);
+		vector_divid(&rp, h);
 		vector_free(&r);
 		matrix_complete_ligne(matH);
 
@@ -143,16 +143,16 @@ void Xmp_matrix_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, ma
 		vector_free(&q); vector_free(&r1); 
 		#pragma xmp task on p(1)
 {
-		printf("residual is %.10f\n", * h);
+		printf("The residual is %f\n", complex_abs(h));
 }
-		if( * h < 1e-10){
+		if( complex_abs(h) < 1e-10){
 			vector_free(&rp);
 			vector_free(vx);
 		    vector_duplicate(&newx, vx);
 		    vector_free(&newx);
 			free(h); free(beta);
 			return;
-		}else if(* h > 1e10){
+		}else if(complex_abs(h) > 1e10){
 			printf("Divergence!!!\nQuit!!!\n");
 			vector_free(&rp);
 			vector_free(vx);
@@ -162,8 +162,8 @@ void Xmp_matrix_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, ma
 			return;
 		}
 		if(j == restart_max){
-			double * A = malloc(sizeof(double));
-			* A = (double)1;
+			complex * A = malloc(sizeof(complex));
+			complex_init(A, 1, 0);
 			nb_tour++;
 			vector_free(&rp);
 			free(h); free(beta); free(v_p);
@@ -188,9 +188,9 @@ void Xmp_ellpack_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, m
 }
 	vector r, r1, rp, q, y, newx;
 	matrix qT;
-	double * h = (double *)malloc(sizeof(double));
-	double * beta = (double *)malloc(sizeof(double));
-	double * v_p = (double *)malloc(sizeof(double) * ROWS_NUM);
+	complex * h = (complex *)malloc(sizeof(complex));
+	complex * beta = (complex *)malloc(sizeof(complex));
+	complex * v_p = (complex *)malloc(sizeof(complex) * ROWS_NUM);
 
 	//Calcul and stock q1
 	#pragma xmp barrier
@@ -201,9 +201,9 @@ void Xmp_ellpack_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, m
 	vector_free(&q);
 
 	vector_abs(&r, h);
-	* beta = * h;
+	complex_copy(beta, h);
 
-	vector_divid(&r, * h);
+	vector_divid(&r, h);
 	stock_vector_in_matrix(matQ, &r, 0);
 	vector_free(&r);
 
@@ -221,7 +221,7 @@ void Xmp_ellpack_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, m
 			matrix_get_vector(matQ, &q, i - 1);
 			vector_inner_produit(&q, &r, h);
 			matrix_add_duplicate(matH, j - 1, (void *)h);
-			vector_multiple(&q, * h);
+			vector_multiple(&q, h);
 			vector_reduce_vector(&rp, &q, &r1);
 			vector_free(&rp);
 			vector_duplicate(&r1, &rp);
@@ -229,7 +229,7 @@ void Xmp_ellpack_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, m
 		}
 		vector_abs(&rp, h);
 		matrix_add_duplicate(matH, j - 1, (void *)h);
-		vector_divid(&rp, * h);
+		vector_divid(&rp, h);
 		vector_free(&r);
 		matrix_complete_ligne(matH);
 
@@ -249,8 +249,8 @@ void Xmp_ellpack_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, m
 		vector_reduce_vector(vb, &q, &r1);
 		vector_abs(&r1, h);
 		vector_free(&q); vector_free(&r1); 
-		printf("residual is %f\n", * h);
-		if( * h < 3000){
+		printf("residual is %f\n", complex_abs(h));
+		if( complex_abs(h) < 3000){
 			vector_free(&rp);
 			vector_free(vx);
 		    vector_duplicate(&newx, vx);
@@ -259,8 +259,8 @@ void Xmp_ellpack_gmres(vector * vx, vector * vb, matrix * matQ, matrix * matH, m
 			return;
 		}
 		if(j == restart_max){
-			double * A = malloc(sizeof(double));
-			* A = (double)1;
+			complex * A = malloc(sizeof(complex));
+			complex_init(A, 1, 0);
 			nb_tour++;
 			vector_free(&rp);
 			free(h); free(beta); free(v_p);
@@ -285,92 +285,101 @@ Read Matrix
 void readMatrix_matrix()
 {
 	//initialize matrix m
-	m = malloc(sizeof(double *) * ROWS_NUM);
+	m = malloc(sizeof(complex *) * ROWS_NUM);
 	for(int i=0; i<ROWS_NUM; i++){
-		m[i] = malloc(sizeof(double) * COLS_NUM);
+		m[i] = malloc(sizeof(complex) * COLS_NUM);
 	}
 
 	FILE * f1;
-	double * temp = malloc(sizeof(double));
+	complex * temp = malloc(sizeof(complex));
+	double * flag = malloc(sizeof(double));
 
-	f1 = fopen("mat_10000_10000.txt", "rb");
+	f1 = fopen("mat_complex_1000_1000.txt", "rb");
 	for(int i=0; i<ROWS_NUM; i++){
 		for(int j=0; j<COLS_NUM; j++){
-			fread(temp, sizeof(double), 1, f1);
-			*(*(m + i) + j) = * temp;
+			fread(flag, sizeof(double), 1, f1); temp->re = * flag;
+			fread(flag, sizeof(double), 1, f1); temp->im = * flag;
+			complex_copy(*(m + i) + j, temp);
 		}
 	}
+	free(temp); free(flag);
 }
 
 void readMatrix_ellpack()
 {
 	//Initialize of m_ell
-	m_ell = malloc(sizeof(double *) * ROWS_NUM);
+	m_ell = malloc(sizeof(complex *) * ROWS_NUM);
 	for(int i=0; i<ROWS_NUM; i++){
-		m_ell[i] = malloc(sizeof(double) * COLS_ELL_NUM);
+		m_ell[i] = malloc(sizeof(complex) * COLS_ELL_NUM);
 	}
 
 	FILE * f1;
-	double * temp = malloc(sizeof(double));
+	complex * temp = malloc(sizeof(complex));
+	double * flag = malloc(sizeof(double));
 
 	f1 = fopen("mat_ell_100000_2002.txt", "rb");
 	for(int i=0; i<ROWS_NUM; i++){
 		for(int j=0; j<COLS_ELL_NUM; j++){
-			fread(temp, sizeof(double), 1, f1);
-			*(*(m_ell + i) + j) = * temp;
+			fread(flag, sizeof(double), 1, f1); temp->re = * flag;
+			fread(flag, sizeof(double), 1, f1); temp->im = * flag;
+			complex_copy(*(m + i) + j, temp);
 		}
 	}
+	free(temp); free(flag);
 }
 
 /*************************
 Initialization of matrix
 **************************/
 void initialize_matrix(vector * vx, vector * vb, matrix * matQ, matrix * matH, matrix * omega, matrix * matR){
-	double a = 1;
+	complex * a = (complex *)malloc(sizeof(complex));
+	complex_init(a, 1, 0);
 	vector_init(vx, ROWS_NUM); vector_init(vb, ROWS_NUM);
 
 	for(int i=0; i<ROWS_NUM; i++){
-		vector_add_duplicate(vx, (void *)&a);
-		vector_add_duplicate(vb, (void *)&a);
+		vector_add_duplicate(vx, (void *)a);
+		vector_add_duplicate(vb, (void *)a);
 	}
 	
 	matrix_init(matQ, 1, 1);
 	matrix_init(matH, 1, 1);
 	matrix_init(matR, 1, 1);
 	matrix_init(omega, 1, 1);
-	matrix_add_duplicate(omega, 0, (void *)&a);
+	matrix_add_duplicate(omega, 0, (void *)a);
+	complex_init(a, 0, 0);
 
-	mat = (double (*)[COLS_NUM])xmp_malloc(xmp_desc_of(mat), ROWS_NUM, COLS_NUM);
+	mat = (complex (*)[COLS_NUM])xmp_malloc(xmp_desc_of(mat), ROWS_NUM, COLS_NUM);
 
 	#pragma xmp loop on t(i)
 {
 	for(int i=0; i<ROWS_NUM; i++){
 		for(int j=0; j<COLS_NUM; j++){
-			mat[i][j] = *(*(m + i) + j);
+			complex_copy(*(mat + i) + j, *(m + i) + j);
 		}
 	}
 }
 
-	V = (double *)xmp_malloc(xmp_desc_of(V), ROWS_NUM);
+	V = (complex *)xmp_malloc(xmp_desc_of(V), ROWS_NUM);
 	#pragma xmp loop on t(i)
 {
 	for(int i=0; i<ROWS_NUM; i++){
-		V[i] = 0;
+		complex_copy(V + i, a);
 	}
 }
 	for(int i=0; i<ROWS_NUM; i++){
 		free(m[i]);
 	}
-	free(m);
+	free(m); free(a);
 }
 
 void initialize_ellpack(vector * vx, vector * vb, matrix * matQ, matrix * matH, matrix * omega, matrix * matR){
-	double a = 1;
+	complex * a = (complex *)malloc(sizeof(complex));
+	complex_init(a, 1, 0);
 	vector_init(vx, ROWS_NUM); vector_init(vb, ROWS_NUM);
 	
 	for(int i=0; i<ROWS_NUM; i++){
-		vector_add_duplicate(vx, (void *)&a);
-		vector_add_duplicate(vb, (void *)&a);
+		vector_add_duplicate(vx, (void *)a);
+		vector_add_duplicate(vb, (void *)a);
 	}
 
 	matrix_init(matQ, 1, 1);
@@ -378,29 +387,30 @@ void initialize_ellpack(vector * vx, vector * vb, matrix * matQ, matrix * matH, 
 	matrix_init(matR, 1, 1);
 	matrix_init(omega, 1, 1);
 	matrix_add_duplicate(omega, 0, (void *)&a);
+	complex_init(a, 0, 0);
 
-	mat_ell = (double (*)[COLS_ELL_NUM])xmp_malloc(xmp_desc_of(mat_ell), ROWS_NUM, COLS_ELL_NUM);
+	mat_ell = (complex (*)[COLS_ELL_NUM])xmp_malloc(xmp_desc_of(mat_ell), ROWS_NUM, COLS_ELL_NUM);
 	#pragma xmp loop on t(i)
 {
 	for(int i=0; i<ROWS_NUM; i++){
 		for(int j=0; j<COLS_ELL_NUM; j++){
-			mat_ell[i][j] = *(*(m_ell + i) + j);
+			complex_copy(*(mat_ell + i) + j, *(m_ell + i) + j);
 		}
 	}
 }
 
-	V = (double *)xmp_malloc(xmp_desc_of(V), ROWS_NUM);
+	V = (complex *)xmp_malloc(xmp_desc_of(V), ROWS_NUM);
 	#pragma xmp loop on t(i)
 {
 	for(int i=0; i<ROWS_NUM; i++){
-		V[i] = 0;
+		complex_copy(V + i, a);
 	}
 }
 
 	for(int i=0; i<ROWS_NUM; i++){
 		free(m_ell[i]);
 	}
-	free(m_ell);
+	free(m_ell); free(a);
 }
 
 /*************************
@@ -411,15 +421,21 @@ void Xmp_matrix_multiple_vector(vector * v){
 		printf("Not same dimension of matrix and vector");
 		return;
 	}else{
+		complex * a = (complex *)malloc(sizeof(complex));
+		complex * flag = (complex *)malloc(sizeof(complex));
+		complex_init(a, 0, 0);
 		#pragma xmp loop on t(i)
 {
 		for(int i=0; i<ROWS_NUM; i++){
-			V[i] = 0;
+			complex_copy(V + i, a);
 			for(int j=0; j<COLS_NUM; j++){
-				V[i] += mat[i][j] * (*(double *)vector_get(v, j));
+				complex_copy(flag, (complex *)vector_get(v, j));
+				complex_multiple(flag, *(mat + i) + j);
+				complex_add(V + i, flag);
 			}
 		}
 }	
+	free(a); free(flag);
 	}
 }
 
@@ -428,13 +444,18 @@ void Xmp_ellpack_multiple_vector(vector * v){
 		printf("Not same dimension of matrix and vector");
 		return;
 	}else{
+		complex * a = (complex *)malloc(sizeof(complex));
+		complex * flag = (complex *)malloc(sizeof(complex));
+		complex_init(a, 0, 0); 
 		#pragma xmp loop on t(i)
 {
 		for(int i=0; i<ROWS_NUM; i++){
-			V[i] = 0;
+			complex_copy(V + i, a);
 			for(int j=0; j<COLS_ELL_NUM/2; j++){
 				if(mat_ell[i][j] != -1){
-					V[i] += mat_ell[i][COLS_ELL_NUM/2 + j] * (*(double *)vector_get(v, mat_ell[i][j]));
+					complex_copy(flag, (complex *)vector_get(v, mat_ell[i][j]));
+					complex_multiple(flag, *(mat_ell + i) + COLS_ELL_NUM/2 + j);
+					complex_add(V + i, flag);
 				}
 			}
 		}
@@ -442,7 +463,7 @@ void Xmp_ellpack_multiple_vector(vector * v){
 	}
 }
 
-void Xmp_vector_duplicate(double * v, vector * r){
+void Xmp_vector_duplicate(complex * v, vector * r){
 	#pragma xmp gmove
 {
 	v[0:ROWS_NUM] = V[0:ROWS_NUM];
@@ -452,4 +473,3 @@ void Xmp_vector_duplicate(double * v, vector * r){
 		vector_add_duplicate(r, (void *)(v + i));
 	}
 }
-	

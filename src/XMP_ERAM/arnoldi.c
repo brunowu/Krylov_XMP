@@ -1,6 +1,6 @@
 #include <time.h>
 #include <xmp.h>
-#include "../../includes/arnoldi_gmres.h"
+#include "../../includes/real/krylov.h"
 #include "../../includes/constant_data.h"
 #include "../../includes/matrix.h"
 #include "../../includes/vector.h"
@@ -241,23 +241,7 @@ void initialize_matrix(vector * v, matrix * matQ, matrix * matH){
 		V[i] = 0;
 	}
 }
-/**
-	vT = (double *)xmp_malloc(xmp_desc_of(vT), ROWS_NUM);
-	#pragma xmp loop on t(i)
-{
-	for(int i=0; i<ROWS_NUM; i++){
-		vT[i] = 0;
-	}
-}
 
-	idx = (double *)xmp_malloc(xmp_desc_of(idx), ROWS_NUM);
-	#pragma xmp loop on t(i)
-{
-	for(int i=0; i<ROWS_NUM; i++){
-		idx[i] = i;
-	}
-}
-**/
 	for(int i=0; i<ROWS_NUM; i++){
 		free(m[i]);
 	}
@@ -289,23 +273,7 @@ void initialize_ellpack(vector * v, matrix * matQ, matrix * matH){
 		V[i] = 0;
 	}
 }
-/**
-	vT = (double *)xmp_malloc(xmp_desc_of(vT), ROWS_NUM);
-	#pragma xmp loop on t(i)
-{
-	for(int i=0; i<ROWS_NUM; i++){
-		vT[i] = 0;
-	}
-}
 
-	idx = (double *)xmp_malloc(xmp_desc_of(idx), ROWS_NUM);
-	#pragma xmp loop on t(i)
-{
-	for(int i=0; i<ROWS_NUM; i++){
-		idx[i] = i;
-	}
-}
-**/
 	for(int i=0; i<ROWS_NUM; i++){
 		free(m_ell[i]);
 	}
@@ -352,25 +320,7 @@ void Xmp_ellpack_multiple_vector(vector * v){
 }
 
 void Xmp_vector_duplicate(double * v, vector * r){
-/**	
-	for(int i=0; i<ROWS_NUM; i++){
-		*(v + i) = 0;
-	}
 
-	#pragma xmp loop on t(i)
-{
-	for(int i=0; i<ROWS_NUM; i++){
-		*(v + i) = V[i];
-	}
-}
-
-	for(int i=0; i<ROWS_NUM; i++){
-		index = *(v + i);
-		#pragma xmp barrier
-		#pragma xmp reduction (+:index)
-		*(v + i) = index;
-	}
-**/
 	#pragma xmp gmove
 {
 	v[0:ROWS_NUM] = V[0:ROWS_NUM];
@@ -380,16 +330,4 @@ void Xmp_vector_duplicate(double * v, vector * r){
 		vector_add_duplicate(r, (void *)(v + i));
 	}
 }
-/**
-void Xmp_vector_gather(vector * r){
-	xmp_gather(xmp_desc_of(vT),xmp_desc_of(V),xmp_desc_of(idx));
 
-	#pragma xmp loop on t(i)
-	#pragma xmp loop on t(i)
-{
-	for(int i=0; i<ROWS_NUM; i++){
-		vT[i] = 0;
-	}
-}
-}
-**/

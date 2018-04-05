@@ -1,7 +1,7 @@
-#include "../includes/arnoldi_gmres.h"
-#include "../includes/matrix.h"
-#include "../includes/vector.h"
-#include "../includes/constant_data.h"
+#include "../../includes/real/krylov.h"
+#include "../../includes/matrix.h"
+#include "../../includes/vector.h"
+#include "../../includes/constant_data.h"
 
 void linear_least_squares(matrix * H, matrix * omega, matrix * matR, vector * y, double * beta){
 	double * c, * s, * ro, * sigma;

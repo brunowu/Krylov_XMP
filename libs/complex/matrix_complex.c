@@ -1,4 +1,4 @@
-#include "../includes/matrix.h"
+#include "../../includes/matrix.h"
 
 int matrix_total_ligne(matrix * mat, int ligne){
 	return mat->total[ligne];
@@ -32,7 +32,7 @@ void matrix_complete_ligne(matrix * mat){
 		if(matrix_total_ligne(mat, i) < mat->colone){
 			//printf("number: %d, col_sum: %d\n", matrix_total(mat, i), mat->colone);
 			for(int j=matrix_total_ligne(mat, i); j<mat->colone; j++){
-				matrix_add_duplicate(mat, i, &a);
+				matrix_add_duplicate(mat, i, (void *)&a);
 			}
 		}
 	}
@@ -100,14 +100,14 @@ void matrix_add(matrix * mat, int ligne, void * item){
 }
 
 void matrix_add_duplicate(matrix * mat, int ligne, void * item){
-	double * item_dup = malloc(sizeof(double));
+	complex * item_dup = malloc(sizeof(complex));
 	if(mat->ligne == ligne){
 		matrix_resize_ligne(mat, ligne + 1);
 	}
 	if(mat->total[ligne] == mat->colone){
 		matrix_resize_colone(mat, mat->colone + 1);
 	}
-	* item_dup = *(double *)item;
+	complex_copy(item_dup, (complex *)item);
 	mat->items[ligne][mat->total[ligne]++] = (void *)item_dup;
 }
 
@@ -131,7 +131,7 @@ void matrix_duplicate(matrix * mat1, matrix * mat2){
 
 void matrix_set(matrix * mat, int ligne, int colone, void * item){
 	if(colone >= 0 && colone < mat->total[ligne]){
-		*(double *)mat->items[ligne][colone] = *(double *)item;
+		complex_copy((complex *)mat->items[ligne][colone], (complex *)item);
 	}
 }
 
@@ -203,7 +203,7 @@ void matrix_free(matrix * mat){
 void matrix_show(matrix * mat){
 	for(int i=0; i<mat->ligne; i++){
 		for(int j=0; j<mat->colone; j++){
-			printf("%f ", *(double *)matrix_get(mat, i, j));
+			complex_show((complex *)matrix_get(mat, i, j));
 		}
 		printf("\n");
 	}
@@ -285,7 +285,7 @@ void matrix_ell_add(matrix_ELL * mat, int ligne, int colone, void * item){
 }
 
 void matrix_ell_add_duplicate(matrix_ELL * mat, int ligne, int colone, void * item){
-	double * item_dup = (double *)malloc(sizeof(double *));
+	complex * item_dup = (complex *)malloc(sizeof(complex *));
 	if(mat->ligne == ligne){
 		printf("Matrix: Out of dimension of ligne\n");
 		return;
@@ -294,7 +294,7 @@ void matrix_ell_add_duplicate(matrix_ELL * mat, int ligne, int colone, void * it
 		printf("Matrix: Out of dimension of colone\n");
 		return;
 	}
-	* item_dup = *(double *)item;
+	complex_copy(item_dup, (complex *)item);
 	mat->total[ligne]++;
 	mat->items[ligne][colone] = (void *)item_dup;
 }
@@ -319,7 +319,7 @@ void matrix_ell_duplicate(matrix_ELL * mat1, matrix_ELL * mat2){
 
 void matrix_ell_set(matrix_ELL * mat, int ligne, int colone, void * item){
 	if(colone >= 0 && colone < mat->total[ligne]){
-		*(double *)mat->items[ligne][colone] = *(double *)item;
+		complex_copy((complex *)mat->items[ligne][colone], (complex *)item);
 	}
 }
 
@@ -349,13 +349,13 @@ void matrix_ell_show(matrix_ELL * mat){
 	for(int i=0; i<mat->ligne; i++){
 		for(int j=0; j<mat->n_colone; j++){
 			for(int k=0; k<mat->colone/2; k++){
-				if(*(double *)matrix_ell_get(mat, i, k) == (double)j){
-					printf("%0.15f ", *(double *)matrix_ell_get(mat, i, mat->colone/2 + k));
+				if(((complex *)matrix_ell_get(mat, i, k))->re == (double)j && ((complex *)matrix_ell_get(mat, i, k))->im == 0){
+					complex_show((complex *)matrix_ell_get(mat, i, mat->colone/2 + k));
 					flag = 1;
 				}
 			}
 			if(flag == 0){
-				printf("%0.15f ", (double)0);
+				printf("%f ", (double)0);
 			}else if(flag == 1){
 				flag = 0;
 			}
@@ -364,14 +364,3 @@ void matrix_ell_show(matrix_ELL * mat){
 	}
 	printf("\n\n");
 }
-
-
-
-
-
-
-
-
-
-
-
